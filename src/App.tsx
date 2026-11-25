@@ -16,8 +16,15 @@ import { Lang, loadLang, saveLang } from './utils/i18n';
 export default function App() {
   const initialProgress = useMemo(() => loadProgress(), []);
 
-  const [courseNumber, setCourseNumber] = useState<number>(
-    initialProgress.currentCourse,
+  // Only cleared courses + the next one are playable
+  const [courseNumber, setCourseNumber] = useState<number>(() =>
+    Math.max(
+      1,
+      Math.min(
+        initialProgress.currentCourse,
+        initialProgress.highestClearedCourse + 1,
+      ),
+    ),
   );
   const [highestClearedCourse, setHighestClearedCourse] = useState<number>(
     initialProgress.highestClearedCourse,
@@ -104,13 +111,18 @@ export default function App() {
     [courseNumber],
   );
 
-  const handleSelectCourse = useCallback((nextCourse: number) => {
-    const clamped = Math.max(1, Math.min(9999, nextCourse));
-    setCourseNumber(clamped);
-    setClearResult(null);
-    setGameStatus('ready');
-    setRestartTriggerCount((c) => c + 1);
-  }, []);
+  const maxUnlockedCourse = Math.min(9999, highestClearedCourse + 1);
+
+  const handleSelectCourse = useCallback(
+    (nextCourse: number) => {
+      const clamped = Math.max(1, Math.min(maxUnlockedCourse, nextCourse));
+      setCourseNumber(clamped);
+      setClearResult(null);
+      setGameStatus('ready');
+      setRestartTriggerCount((c) => c + 1);
+    },
+    [maxUnlockedCourse],
+  );
 
   const handleRestartCourse = useCallback(() => {
     setClearResult(null);
@@ -231,6 +243,7 @@ export default function App() {
         courseNumber={courseNumber}
         courseTitle={currentCourse.courseTitle}
         highestClearedCourse={highestClearedCourse}
+        maxUnlockedCourse={maxUnlockedCourse}
         courseStars={courseStars}
         coins={coins}
         skinId={skinId}

@@ -29,6 +29,7 @@ interface ControlDockProps {
   courseNumber: number;
   courseTitle: string;
   highestClearedCourse: number;
+  maxUnlockedCourse: number;
   courseStars: Record<number, number>;
   coins: number;
   skinId: BallSkinId;
@@ -72,6 +73,7 @@ export const ControlDock: React.FC<ControlDockProps> = ({
   courseNumber,
   courseTitle,
   highestClearedCourse,
+  maxUnlockedCourse,
   courseStars,
   coins,
   skinId,
@@ -138,7 +140,9 @@ export const ControlDock: React.FC<ControlDockProps> = ({
     e.preventDefault();
     const parsed = parseInt(customCourseInput, 10);
     if (!Number.isNaN(parsed) && parsed >= 1) {
-      onSelectCourse(Math.min(9999, parsed));
+      const target = Math.min(maxUnlockedCourse, parsed);
+      setCustomCourseInput(String(target));
+      onSelectCourse(target);
     }
   };
 
@@ -208,10 +212,19 @@ export const ControlDock: React.FC<ControlDockProps> = ({
             </div>
             <button
               onClick={() => onSelectCourse(courseNumber + 1)}
-              className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 transition-colors cursor-pointer"
-              title={T('Next Course', '다음 코스')}
+              disabled={courseNumber >= maxUnlockedCourse}
+              className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-slate-900"
+              title={
+                courseNumber >= maxUnlockedCourse
+                  ? T('Clear this course to unlock the next one', '이 코스를 깨야 다음 코스가 열려요')
+                  : T('Next Course', '다음 코스')
+              }
             >
-              <ChevronRight className="w-4 h-4" />
+              {courseNumber >= maxUnlockedCourse ? (
+                <Lock className="w-4 h-4" />
+              ) : (
+                <ChevronRight className="w-4 h-4" />
+              )}
             </button>
           </div>
 
@@ -499,7 +512,7 @@ export const ControlDock: React.FC<ControlDockProps> = ({
                   }`}
                 >
                   <Palette className="w-3.5 h-3.5 text-sky-400" />
-                  <span>{T('Courses (1–999) & Worlds', '코스 (1–999) & 월드')}</span>
+                  <span>{T('Courses & Worlds', '코스 & 월드')}</span>
                 </button>
               </div>
 
@@ -584,22 +597,17 @@ export const ControlDock: React.FC<ControlDockProps> = ({
                       {T('Course 1', '코스 1')}
                     </button>
                     <button
-                      onClick={() => onSelectCourse(courseNumber + 1)}
-                      className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs text-slate-300 cursor-pointer whitespace-nowrap"
+                      onClick={() => onSelectCourse(courseNumber - 1)}
+                      disabled={courseNumber <= 1}
+                      className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs text-slate-300 cursor-pointer whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                      {T('+1 Course', '+1 코스')}
+                      {T('Previous', '이전 코스')}
                     </button>
                     <button
-                      onClick={() => onSelectCourse(courseNumber + 10)}
-                      className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs text-slate-300 cursor-pointer whitespace-nowrap"
-                    >
-                      {T('+10 Courses', '+10 코스')}
-                    </button>
-                    <button
-                      onClick={() => onSelectCourse(courseNumber + 50)}
+                      onClick={() => onSelectCourse(maxUnlockedCourse)}
                       className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs text-amber-400 cursor-pointer whitespace-nowrap"
                     >
-                      {T('+50 Courses', '+50 코스')}
+                      {T(`Newest: Course ${maxUnlockedCourse}`, `도전 중: 코스 ${maxUnlockedCourse}`)}
                     </button>
                   </div>
                 </div>
@@ -737,23 +745,26 @@ export const ControlDock: React.FC<ControlDockProps> = ({
                 <div>
                   <div className="text-[11px] text-slate-400 mb-1.5">
                     {T(
-                      `Select Any Course (Course 1 to 999+) · Highest Cleared: Course ${highestClearedCourse}`,
-                      `원하는 코스 선택 (1~999+) · 최고 기록: 코스 ${highestClearedCourse}`,
+                      `Open courses: 1 to ${maxUnlockedCourse} · Clear a course to unlock the next`,
+                      `열린 코스: 1~${maxUnlockedCourse} · 코스를 깨면 다음 코스가 열려요`,
                     )}
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5">
                     {QUICK_COURSES.map((cNum) => {
                       const bestStars = courseStars[cNum] || 0;
+                      const locked = cNum > maxUnlockedCourse;
                       return (
                         <button
                           key={cNum}
                           onClick={() => onSelectCourse(cNum)}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-mono tabular-nums transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1 ${
+                          disabled={locked}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-mono tabular-nums transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed ${
                             courseNumber === cNum
                               ? 'bg-amber-400 text-slate-950 font-bold'
                               : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'
                           }`}
                         >
+                          {locked && <Lock className="w-3 h-3" />}
                           <span>{T('Course', '코스')} {cNum}</span>
                           {bestStars > 0 && (
                             <span
@@ -776,7 +787,7 @@ export const ControlDock: React.FC<ControlDockProps> = ({
                       <input
                         type="number"
                         min={1}
-                        max={9999}
+                        max={maxUnlockedCourse}
                         value={customCourseInput}
                         onChange={(e) => setCustomCourseInput(e.target.value)}
                         className="w-20 px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 text-xs font-mono tabular-nums text-white"
