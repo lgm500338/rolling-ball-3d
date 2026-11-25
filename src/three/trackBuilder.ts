@@ -5,14 +5,14 @@ import {
   GeneratedCourse,
   TrackNode,
   WorldThemeSpec,
+  TrackFinish,
 } from '../types/game';
 import { SLICE_STEP } from './courseGenerator';
 import {
   createBallSkinTexture,
   createFinishCheckeredTexture,
   createHazardStripeTexture,
-  createTrackSurfaceTexture,
-} from './textures';
+  createTrackSurfaceTexture, createLaneTexture } from './textures';
 
 /**
  * Interpolates the TrackNode at any world Z coordinate along the course.
@@ -107,20 +107,38 @@ export function buildCourseMeshes(
   course: GeneratedCourse,
   theme: WorldThemeSpec,
   maxAnisotropy: number,
+  finish: TrackFinish = 'lacquer',
 ): BuiltCourseMeshes {
   const root = new THREE.Group();
   root.name = `Course_${course.courseNumber}`;
 
-  const trackTex = createTrackSurfaceTexture(theme.trackSurface, maxAnisotropy);
+  const trackTex =
+    finish === 'wood'
+      ? createTrackSurfaceTexture(theme.trackSurface, maxAnisotropy)
+      : createLaneTexture(finish, maxAnisotropy);
   const hazardTex = createHazardStripeTexture(maxAnisotropy);
   const finishTex = createFinishCheckeredTexture(maxAnisotropy);
 
-  const trackMat = new THREE.MeshStandardMaterial({
-    map: trackTex,
-    side: THREE.DoubleSide,
-    roughness: theme.trackSurface === 'asphalt' ? 0.72 : 0.42,
-    metalness: theme.trackSurface === 'copper' ? 0.35 : 0.08,
-  });
+  const trackMat: THREE.MeshStandardMaterial =
+    finish === 'wood'
+      ? new THREE.MeshStandardMaterial({
+          map: trackTex,
+          side: THREE.DoubleSide,
+          roughness: theme.trackSurface === 'asphalt' ? 0.72 : 0.42,
+          metalness: theme.trackSurface === 'copper' ? 0.35 : 0.08,
+        })
+      : new THREE.MeshPhysicalMaterial({
+          // Thick lacquer coat like a freshly oiled bowling lane
+          map: trackTex,
+          side: THREE.DoubleSide,
+          roughness: finish === 'piano' ? 0.12 : 0.22,
+          metalness: 0.0,
+          clearcoat: 1.0,
+          clearcoatRoughness: finish === 'piano' ? 0.02 : 0.05,
+          envMapIntensity: finish === 'piano' ? 1.1 : 0.7,
+        });
+
+  root.userData.trackMat = trackMat;
 
   const trimMat = new THREE.MeshStandardMaterial({
     color: theme.railTrimColor,
@@ -456,6 +474,78 @@ export function buildPlayerBallGroup(
   );
   pointLight.position.set(0, 0.3, 0);
   ballRoot.add(pointLight);
+
+  // 6. Glow-in-the-dark aura for Glow balls: fresnel rim shell + soft halo
+  //    sprite, both additive and gently pulsing (cheap on phones)
+  if (skin.category === 'Glow') {
+    const glowColor = new THREE.Color(customAccentHex || skin.emissiveColor);
+    const strength = skin.id === 'neon-plasma' ? 1.6 : 1.0;
+
+    const rimMat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      side: THREE.FrontSide,
+      uniforms: {
+        uColor: { value: glowColor },
+        uStrength: { value: 1.3 * strength * Math.max(0.4, glowBoost) },
+      },
+      vertexShader: /* glsl */ `
+        varying float vRim;
+        void main() {
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          vec3 n = normalize(normalMatrix * normal);
+          vRim = 1.0 - abs(dot(n, normalize(-mv.xyz)));
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        uniform vec3 uColor;
+        uniform float uStrength;
+        varying float vRim;
+        void main() {
+          float a = pow(vRim, 2.2) * uStrength;
+          gl_FragColor = vec4(uColor * a, a);
+        }
+      `,
+    });
+    const rim = new THREE.Mesh(new THREE.SphereGeometry(radius * 1.18, 32, 24), rimMat);
+    ballRoot.add(rim);
+
+    const haloCanvas = document.createElement('canvas');
+    haloCanvas.width = haloCanvas.height = 128;
+    const hctx = haloCanvas.getContext('2d')!;
+    const hg = hctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+    hg.addColorStop(0, 'rgba(255,255,255,0.9)');
+    hg.addColorStop(0.25, 'rgba(255,255,255,0.45)');
+    hg.addColorStop(0.6, 'rgba(255,255,255,0.12)');
+    hg.addColorStop(1, 'rgba(255,255,255,0)');
+    hctx.fillStyle = hg;
+    hctx.fillRect(0, 0, 128, 128);
+    const haloMat = new THREE.SpriteMaterial({
+      map: new THREE.CanvasTexture(haloCanvas),
+      color: glowColor,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      opacity: 0.5 * strength * Math.min(1.3, Math.max(0.4, glowBoost)),
+    });
+    const halo = new THREE.Sprite(haloMat);
+    halo.scale.setScalar(radius * 5.2);
+    ballRoot.add(halo);
+
+    const baseLight = pointLight.intensity * (strength > 1 ? 1.2 : 1);
+    const baseOpacity = haloMat.opacity;
+    const baseEmissive = sphereMat.emissiveIntensity;
+    ballRoot.userData.update = (t: number) => {
+      const pulse = 0.82 + 0.18 * Math.sin(t * 3.2);
+      haloMat.opacity = baseOpacity * pulse;
+      halo.scale.setScalar(radius * (5.0 + 0.5 * pulse));
+      pointLight.intensity = baseLight * (0.9 + 0.25 * pulse);
+      sphereMat.emissiveIntensity = baseEmissive * (0.85 + 0.25 * pulse);
+    };
+    pointLight.distance = 10;
+  }
 
   return { ballRoot, spinGroup, shadowMesh, pointLight };
 }

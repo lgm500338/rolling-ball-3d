@@ -7,6 +7,7 @@ import {
   BallSkinId,
   CourseClearResult,
   GameStatus,
+  TrackFinish,
   WorldThemeId,
 } from './types/game';
 import { soundEngine } from './utils/sound';
@@ -49,6 +50,9 @@ export default function App() {
   const [cameraPreset, setCameraPreset] = useState<'chase' | 'far' | 'low'>(
     initialProgress.cameraPreset,
   );
+  const [trackFinish, setTrackFinish] = useState<TrackFinish>(
+    initialProgress.trackFinish,
+  );
   const [soundEnabled, setSoundEnabled] = useState<boolean>(
     initialProgress.soundEnabled,
   );
@@ -90,6 +94,7 @@ export default function App() {
       themeOverride,
       cameraPreset,
       soundEnabled,
+      trackFinish,
     });
   }, [
     coins,
@@ -103,6 +108,7 @@ export default function App() {
     themeOverride,
     cameraPreset,
     soundEnabled,
+    trackFinish,
   ]);
 
   // Generate current course deterministically from courseNumber (1 to 999+)
@@ -229,6 +235,7 @@ export default function App() {
         glowBoost={glowBoost}
         themeOverride={themeOverride}
         cameraPreset={cameraPreset}
+        trackFinish={trackFinish}
         gameStatus={gameStatus}
         jumpTriggerCount={jumpTriggerCount}
         restartTriggerCount={restartTriggerCount}
@@ -263,6 +270,8 @@ export default function App() {
         onChangeGlowBoost={setGlowBoost}
         onSelectTheme={setThemeOverride}
         onSelectCameraPreset={setCameraPreset}
+        trackFinish={trackFinish}
+        onSelectTrackFinish={setTrackFinish}
         onToggleSound={handleToggleSound}
         onJump={handleJump}
         onRestartCourse={handleRestartCourse}

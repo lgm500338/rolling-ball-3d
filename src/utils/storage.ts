@@ -14,6 +14,7 @@ export interface SavedProgress {
   themeOverride: WorldThemeId | 'auto';
   cameraPreset: 'chase' | 'far' | 'low';
   soundEnabled: boolean;
+  trackFinish: 'lacquer' | 'wood' | 'piano';
 }
 
 const VALID_SKINS: BallSkinId[] = [
@@ -39,6 +40,7 @@ export const DEFAULT_PROGRESS: SavedProgress = {
   themeOverride: 'auto',
   cameraPreset: 'chase',
   soundEnabled: true,
+  trackFinish: 'lacquer',
 };
 
 export function loadProgress(): SavedProgress {
@@ -110,6 +112,10 @@ export function loadProgress(): SavedProgress {
       cameraPreset: parsed.cameraPreset || 'chase',
       soundEnabled:
         typeof parsed.soundEnabled === 'boolean' ? parsed.soundEnabled : true,
+      trackFinish:
+        parsed.trackFinish === 'wood' || parsed.trackFinish === 'piano'
+          ? parsed.trackFinish
+          : 'lacquer',
     };
   } catch {
     return DEFAULT_PROGRESS;

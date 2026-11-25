@@ -5,6 +5,7 @@ import {
   BallSkinId,
   GameStatus,
   GeneratedCourse,
+  TrackFinish,
   WorldThemeId,
 } from '../types/game';
 import { BALL_SKINS, buildWorldBackdrop, WORLD_THEMES } from '../three/worldThemes';
@@ -42,6 +43,7 @@ interface GameCanvasProps {
   glowBoost: number;
   themeOverride: WorldThemeId | 'auto';
   cameraPreset: 'chase' | 'far' | 'low';
+  trackFinish: TrackFinish;
   gameStatus: GameStatus;
   jumpTriggerCount: number;
   restartTriggerCount: number;
@@ -58,6 +60,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   glowBoost,
   themeOverride,
   cameraPreset,
+  trackFinish,
   gameStatus,
   jumpTriggerCount,
   restartTriggerCount,
@@ -163,6 +166,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     shadowMesh?: THREE.Mesh;
     maxAnisotropy: number;
     isSoftwareGl: boolean;
+    envCache?: Map<THREE.Texture, THREE.Texture>;
     courseData: GeneratedCourse;
   }>({
     maxAnisotropy: 1,
@@ -936,7 +940,35 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       lastTime = now;
 
       stepPhysics(dt, now / 1000);
-      updateWorldBackdrop(sceneRefs.current.backdropGroup, dt, camera, scene);
+      const sr = sceneRefs.current;
+      updateWorldBackdrop(sr.backdropGroup, dt, camera, scene);
+      sr.ballRoot?.userData.update?.(now / 1000);
+
+      // Once the world photo is loaded, let glossy track finishes reflect it
+      const bd = sr.backdropGroup;
+      const trackMat = sr.courseBuilt?.root.userData.trackMat as
+        | THREE.MeshStandardMaterial
+        | undefined;
+      if (bd?.userData.panoTex && trackMat && trackMat.userData.envFrom !== bd.userData.panoTex) {
+        trackMat.userData.envFrom = bd.userData.panoTex;
+        if (trackMat instanceof THREE.MeshPhysicalMaterial) {
+          try {
+            sr.envCache ??= new Map();
+            let env = sr.envCache.get(bd.userData.panoTex);
+            if (!env) {
+              const pm = new THREE.PMREMGenerator(renderer);
+              env = pm.fromEquirectangular(bd.userData.panoTex).texture;
+              pm.dispose();
+              sr.envCache.set(bd.userData.panoTex, env);
+            }
+            trackMat.envMap = env;
+            trackMat.envMapRotation.set(0, bd.userData.panoYaw * Math.PI * 2, 0);
+            trackMat.needsUpdate = true;
+          } catch {
+            // keep studio reflections
+          }
+        }
+      }
       renderer.render(scene, camera);
 
       if (isSoftwareGl) {
@@ -997,7 +1029,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       scene.remove(sRefs.backdropGroup);
     }
 
-    const built = buildCourseMeshes(course, theme, sRefs.maxAnisotropy);
+    const built = buildCourseMeshes(course, theme, sRefs.maxAnisotropy, trackFinish);
     scene.add(built.root);
     sRefs.courseBuilt = built;
 
@@ -1006,7 +1038,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     sRefs.backdropGroup = backdrop;
 
     resetBallPosition(course);
-  }, [course, themeOverride]);
+  }, [course, themeOverride, trackFinish]);
 
   // 3. Rebuild Player Ball when skinId, customAccentHex, or glowBoost changes
   useEffect(() => {

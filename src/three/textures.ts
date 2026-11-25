@@ -316,3 +316,58 @@ export function createBallSkinTexture(
 
   return configureTexture(new THREE.CanvasTexture(canvas), maxAnisotropy, 1, 1);
 }
+
+/** Glossy bowling-lane style maple boards (narrow strips, light tones). */
+export function createLaneTexture(
+  style: 'lacquer' | 'piano',
+  maxAnisotropy: number,
+): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d')!;
+  const boards = 20;
+  const bw = canvas.width / boards;
+  const tones =
+    style === 'lacquer'
+      ? ['#d9a466', '#cf9758', '#e0b073', '#c88d4e', '#d69f60']
+      : ['#16181d', '#1b1e24', '#121418', '#1e2128', '#15171c'];
+  for (let i = 0; i < boards; i++) {
+    ctx.fillStyle = tones[(i * 7) % tones.length];
+    ctx.fillRect(i * bw, 0, bw, canvas.height);
+    // fine grain
+    ctx.strokeStyle = style === 'lacquer' ? 'rgba(120,70,20,0.10)' : 'rgba(255,255,255,0.025)';
+    ctx.lineWidth = 1;
+    for (let g = 0; g < 5; g++) {
+      const gx = i * bw + 2 + ((g * 37 + i * 11) % (bw - 4));
+      ctx.beginPath();
+      ctx.moveTo(gx, 0);
+      ctx.bezierCurveTo(gx + 2, 170, gx - 2, 340, gx, 512);
+      ctx.stroke();
+    }
+    // thin seam between boards
+    ctx.fillStyle = style === 'lacquer' ? 'rgba(90,50,15,0.35)' : 'rgba(0,0,0,0.6)';
+    ctx.fillRect(i * bw, 0, 1, canvas.height);
+  }
+  // staggered board end joints
+  ctx.fillStyle = style === 'lacquer' ? 'rgba(90,50,15,0.25)' : 'rgba(0,0,0,0.5)';
+  for (let i = 0; i < boards; i++) {
+    const y = ((i * 149) % 512);
+    ctx.fillRect(i * bw, y, bw, 1);
+  }
+  if (style === 'lacquer') {
+    // bowling-lane guide dots
+    ctx.fillStyle = 'rgba(60,30,10,0.55)';
+    [5, 8, 11, 14].forEach((b) => {
+      ctx.beginPath();
+      ctx.arc(b * bw + bw / 2, 256, 3, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.anisotropy = Math.min(8, maxAnisotropy);
+  return tex;
+}

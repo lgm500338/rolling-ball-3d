@@ -790,6 +790,8 @@ function attachPanorama(group: THREE.Group, themeId: WorldThemeSpec['id']) {
       group.add(dome);
       group.userData.pano = dome;
       group.userData.fogColor = horizon;
+      group.userData.panoTex = tex;
+      group.userData.panoYaw = spec.yaw;
       const mat = dome.material as THREE.ShaderMaterial;
       let t = 0;
       addUpdate(group, (dt) => {

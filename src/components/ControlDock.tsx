@@ -19,6 +19,7 @@ import {
   BallSkinId,
   CourseClearResult,
   GameStatus,
+  TrackFinish,
   WorldThemeId,
 } from '../types/game';
 import { BALL_SKINS, WORLD_THEMES } from '../three/worldThemes';
@@ -49,6 +50,8 @@ interface ControlDockProps {
   onChangeGlowBoost: (val: number) => void;
   onSelectTheme: (theme: WorldThemeId | 'auto') => void;
   onSelectCameraPreset: (preset: 'chase' | 'far' | 'low') => void;
+  trackFinish: TrackFinish;
+  onSelectTrackFinish: (finish: TrackFinish) => void;
   onToggleSound: () => void;
   onJump: () => void;
   onRestartCourse: () => void;
@@ -93,6 +96,8 @@ export const ControlDock: React.FC<ControlDockProps> = ({
   onChangeGlowBoost,
   onSelectTheme,
   onSelectCameraPreset,
+  trackFinish,
+  onSelectTrackFinish,
   onToggleSound,
   onJump,
   onRestartCourse,
@@ -527,7 +532,7 @@ export const ControlDock: React.FC<ControlDockProps> = ({
 
             {/* TAB 1: Track & Camera Controls */}
             {activeTab === 'controls' && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-center">
                 {/* Camera View Preset */}
                 <div>
                   <div className="text-[11px] text-slate-400 mb-1.5">
@@ -551,6 +556,34 @@ export const ControlDock: React.FC<ControlDockProps> = ({
                         }`}
                       >
                         {cam.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Track Surface Finish */}
+                <div>
+                  <div className="text-[11px] text-slate-400 mb-1.5">
+                    {T('Track Surface', '트랙 바닥')}
+                  </div>
+                  <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl">
+                    {(
+                      [
+                        { id: 'lacquer', label: T('Glossy Lane', '광택 볼링장') },
+                        { id: 'piano', label: T('Black Gloss', '블랙 유광') },
+                        { id: 'wood', label: T('Natural Wood', '원목') },
+                      ] as { id: TrackFinish; label: string }[]
+                    ).map((f) => (
+                      <button
+                        key={f.id}
+                        onClick={() => onSelectTrackFinish(f.id)}
+                        className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap ${
+                          trackFinish === f.id
+                            ? 'bg-amber-400 text-slate-950 font-semibold'
+                            : 'text-slate-300 hover:text-white'
+                        }`}
+                      >
+                        {f.label}
                       </button>
                     ))}
                   </div>

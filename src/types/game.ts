@@ -23,6 +23,8 @@ export interface BallSkinSpec {
   clearcoat: number;
 }
 
+export type TrackFinish = 'lacquer' | 'wood' | 'piano';
+
 export type WorldThemeId = 'skyline' | 'harbor' | 'canyon' | 'overpass' | 'sunset';
 
 export interface WorldThemeSpec {

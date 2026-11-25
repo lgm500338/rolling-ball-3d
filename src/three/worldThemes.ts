@@ -53,7 +53,7 @@ export const BALL_SKINS: BallSkinSpec[] = [
     baseColor: '#090d16',
     accentColor: '#00f5d4',
     emissiveColor: '#00f5d4',
-    emissiveIntensity: 1.35,
+    emissiveIntensity: 1.7,
     metalness: 0.4,
     roughness: 0.18,
     clearcoat: 0.9,
