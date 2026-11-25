@@ -1,0 +1,6 @@
+{
+  "name": "Going Balls 3D: Course Runner",
+  "description": "A 3D physics-based rolling ball arcade game featuring U-pipe half-pipes, direct jumping, obstacle courses, customizable glow and golden balls, and hundreds of progressive courses.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
