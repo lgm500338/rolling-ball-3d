@@ -153,9 +153,9 @@ export const WORLD_THEMES: Record<WorldThemeId, WorldThemeSpec> = {
   },
   canyon: {
     id: 'canyon',
-    name: 'Moonlit Canyon',
-    nameKo: '달빛 협곡',
-    subtitle: 'Night valley of rock spires, a glowing river and fireflies',
+    name: 'Moonlit Desert',
+    nameKo: '달빛 사막',
+    subtitle: 'Starry desert night under a bright moon',
     hemiIntensity: 1.0,
     sunIntensity: 1.2,
     skyTopColor: '#020617',

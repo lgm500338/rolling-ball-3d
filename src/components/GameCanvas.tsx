@@ -936,7 +936,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       lastTime = now;
 
       stepPhysics(dt, now / 1000);
-      updateWorldBackdrop(sceneRefs.current.backdropGroup, dt, camera);
+      updateWorldBackdrop(sceneRefs.current.backdropGroup, dt, camera, scene);
       renderer.render(scene, camera);
 
       if (isSoftwareGl) {
@@ -993,6 +993,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       scene.remove(sRefs.courseBuilt.root);
     }
     if (sRefs.backdropGroup) {
+      sRefs.backdropGroup.userData.disposed = true;
       scene.remove(sRefs.backdropGroup);
     }
 

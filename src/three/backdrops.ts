@@ -668,6 +668,149 @@ function addFireflies(
   });
 }
 
+// ---------------------------------------------------------------- Photo panoramas
+
+/**
+ * Real 360° photos (CC0, Poly Haven), stored in /public/panoramas so the game
+ * never depends on the original site. `yaw` turns the photo so its most
+ * interesting part sits ahead of the player.
+ */
+const PANORAMAS: Partial<Record<WorldThemeSpec['id'], { file: string; yaw: number }>> = {
+  skyline: { file: 'panoramas/night-city.jpg', yaw: 0.38 },
+  overpass: { file: 'panoramas/dusk-city.jpg', yaw: 0.15 },
+  sunset: { file: 'panoramas/sunset-fields.jpg', yaw: 0.35 },
+  harbor: { file: 'panoramas/harbor.jpg', yaw: 0.3 },
+  canyon: { file: 'panoramas/moonlit-desert.jpg', yaw: 0.7 },
+};
+
+const panoCache = new Map<string, Promise<{ tex: THREE.Texture; horizon: THREE.Color }>>();
+
+function loadPanorama(file: string) {
+  let p = panoCache.get(file);
+  if (!p) {
+    p = new Promise((resolve, reject) => {
+      new THREE.TextureLoader().load(
+        `${import.meta.env.BASE_URL}${file}`,
+        (tex) => {
+          tex.colorSpace = THREE.SRGBColorSpace;
+          tex.generateMipmaps = false;
+          tex.minFilter = THREE.LinearFilter;
+          tex.magFilter = THREE.LinearFilter;
+          tex.wrapS = THREE.RepeatWrapping;
+          // Average colour just above the horizon, used for fog so the far
+          // track blends into the photo.
+          const horizon = new THREE.Color('#888888');
+          try {
+            const img = tex.image as HTMLImageElement;
+            const c = document.createElement('canvas');
+            c.width = 64;
+            c.height = 1;
+            const ctx = c.getContext('2d')!;
+            ctx.drawImage(img, 0, img.height * 0.47, img.width, img.height * 0.02, 0, 0, 64, 1);
+            const d = ctx.getImageData(0, 0, 64, 1).data;
+            let r = 0, g = 0, b = 0;
+            for (let i = 0; i < 64; i++) {
+              r += d[i * 4];
+              g += d[i * 4 + 1];
+              b += d[i * 4 + 2];
+            }
+            horizon.setRGB(r / 64 / 255, g / 64 / 255, b / 64 / 255, THREE.SRGBColorSpace);
+          } catch {
+            // keep default
+          }
+          resolve({ tex, horizon });
+        },
+        undefined,
+        (err) => {
+          panoCache.delete(file);
+          reject(err);
+        },
+      );
+    });
+    panoCache.set(file, p);
+  }
+  return p;
+}
+
+function buildPanoramaDome(tex: THREE.Texture, yaw: number, fade: THREE.Color) {
+  const mat = new THREE.ShaderMaterial({
+    side: THREE.BackSide,
+    depthWrite: false,
+    transparent: true,
+    fog: false,
+    uniforms: {
+      uMap: { value: tex },
+      uYaw: { value: yaw },
+      uFade: { value: fade },
+      uOpacity: { value: 0 },
+    },
+    toneMapped: false,
+    vertexShader: /* glsl */ `
+      varying vec3 vDir;
+      void main() {
+        vDir = position;
+        vec4 p = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        gl_Position = p.xyww;
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      uniform sampler2D uMap;
+      uniform float uYaw, uOpacity;
+      uniform vec3 uFade;
+      varying vec3 vDir;
+      void main() {
+        vec3 d = normalize(vDir);
+        float u = fract(atan(d.z, d.x) / 6.2831853 + 0.5 + uYaw);
+        // Drop the photo's horizon a little below eye level so the track
+        // feels like it floats above the scene
+        float v = clamp((asin(clamp(d.y, -1.0, 1.0)) + 0.12) / 3.1415927 + 0.5, 0.001, 0.999);
+        vec3 col = texture2D(uMap, vec2(u, v)).rgb;
+        // Soften the ground far below so the floating track reads as high up
+        float below = smoothstep(-0.3, -0.75, d.y);
+        col = mix(col, uFade, below * 0.8);
+        gl_FragColor = vec4(col, uOpacity);
+        #include <colorspace_fragment>
+      }
+    `,
+  });
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(390, 48, 24), mat);
+  mesh.name = 'PanoramaDome';
+  mesh.frustumCulled = false;
+  mesh.renderOrder = -999;
+  return mesh;
+}
+
+function attachPanorama(group: THREE.Group, themeId: WorldThemeSpec['id']) {
+  const spec = PANORAMAS[themeId];
+  if (!spec) return;
+  loadPanorama(spec.file)
+    .then(({ tex, horizon }) => {
+      if (group.userData.disposed) return;
+      const dome = buildPanoramaDome(tex, spec.yaw, horizon.clone().multiplyScalar(0.8));
+      group.add(dome);
+      group.userData.pano = dome;
+      group.userData.fogColor = horizon;
+      const mat = dome.material as THREE.ShaderMaterial;
+      let t = 0;
+      addUpdate(group, (dt) => {
+        if (t >= 1) return;
+        t = Math.min(1, t + dt * 1.6);
+        mat.uniforms.uOpacity.value = t;
+        if (t >= 1) {
+          // Photo fully in: hide the stylised props & sky underneath
+          group.children.forEach((c) => {
+            if (c !== dome) c.visible = false;
+          });
+          mat.transparent = false;
+          mat.needsUpdate = true;
+        }
+      });
+    })
+    .catch(() => {
+      // Offline or missing file: keep the stylised world
+    });
+}
+
 // ---------------------------------------------------------------- Helpers
 
 function addUpdate(group: THREE.Group, fn: UpdateFn) {
@@ -680,12 +823,21 @@ export function updateWorldBackdrop(
   group: THREE.Group | undefined,
   dt: number,
   camera: THREE.Camera,
+  scene?: THREE.Scene,
 ) {
   if (!group) return;
   const sky = group.userData.sky as THREE.Mesh | undefined;
   if (sky) {
     sky.position.copy(camera.position);
     (sky.material as THREE.ShaderMaterial).uniforms.uTime.value += dt;
+  }
+  const pano = group.userData.pano as THREE.Mesh | undefined;
+  if (pano) pano.position.copy(camera.position);
+  const fogColor = group.userData.fogColor as THREE.Color | undefined;
+  if (scene && fogColor && !group.userData.fogApplied) {
+    group.userData.fogApplied = true;
+    if (scene.fog) (scene.fog as THREE.FogExp2).color.copy(fogColor);
+    scene.background = fogColor.clone();
   }
   const list = group.userData.updates as UpdateFn[] | undefined;
   list?.forEach((fn) => fn(dt, camera));
@@ -857,5 +1009,6 @@ export function buildAtmosphericBackdrop(
 
   group.add(sky);
   group.userData.sky = sky;
+  attachPanorama(group, theme.id);
   return group;
 }
