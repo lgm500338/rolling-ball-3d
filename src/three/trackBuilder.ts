@@ -68,7 +68,7 @@ export function getSurfaceHeightAndNormal(
 
   // Banking height offset + U-pipe parabolic/circular wall rise
   const bankY = Math.sin(node.bankAngle) * localX;
-  const uCurveY = node.uPipeDepth * Math.pow(clampedU, 2.2);
+  const uCurveY = node.uPipeDepth * Math.pow(Math.abs(clampedU), 2.2);
 
   // Derivative dy/dx for exact normal vector on the U-pipe wall
   const dyDx =
@@ -117,6 +117,7 @@ export function buildCourseMeshes(
 
   const trackMat = new THREE.MeshStandardMaterial({
     map: trackTex,
+    side: THREE.DoubleSide,
     roughness: theme.trackSurface === 'asphalt' ? 0.72 : 0.42,
     metalness: theme.trackSurface === 'copper' ? 0.35 : 0.08,
   });
