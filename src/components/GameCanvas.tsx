@@ -1106,6 +1106,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
+      style={{ touchAction: 'none' }}
       className="relative w-full h-full cursor-grab active:cursor-grabbing select-none"
     />
   );

@@ -11,6 +11,7 @@ import {
 } from './types/game';
 import { soundEngine } from './utils/sound';
 import { loadProgress, saveProgress } from './utils/storage';
+import { Lang, loadLang, saveLang } from './utils/i18n';
 
 export default function App() {
   const initialProgress = useMemo(() => loadProgress(), []);
@@ -44,6 +45,11 @@ export default function App() {
   const [soundEnabled, setSoundEnabled] = useState<boolean>(
     initialProgress.soundEnabled,
   );
+  const [lang, setLang] = useState<Lang>(() => loadLang());
+  useEffect(() => {
+    saveLang(lang);
+    document.documentElement.lang = lang;
+  }, [lang]);
   const [gameStatus, setGameStatus] = useState<GameStatus>('ready');
   const [clearResult, setClearResult] = useState<CourseClearResult | null>(null);
   const [jumpTriggerCount, setJumpTriggerCount] = useState<number>(0);
@@ -165,7 +171,10 @@ export default function App() {
         const shortfall = skin.price - coins;
         return {
           ok: false,
-          message: `Need ${shortfall} more coins to unlock ${skin.name} (${skin.price} coins).`,
+          message:
+            lang === 'ko'
+              ? `${skin.name}을(를) 열려면 코인이 ${shortfall}개 더 필요해요 (가격 ${skin.price}).`
+              : `Need ${shortfall} more coins to unlock ${skin.name} (${skin.price} coins).`,
         };
       }
 
@@ -177,10 +186,13 @@ export default function App() {
       soundEngine.playCourseComplete();
       return {
         ok: true,
-        message: `Unlocked and equipped ${skin.name}!`,
+        message:
+          lang === 'ko'
+            ? `${skin.name}을(를) 열고 장착했어요!`
+            : `Unlocked and equipped ${skin.name}!`,
       };
     },
-    [unlockedSkins, coins],
+    [unlockedSkins, coins, lang],
   );
 
   const handleJump = useCallback(() => {
@@ -241,6 +253,8 @@ export default function App() {
         onToggleSound={handleToggleSound}
         onJump={handleJump}
         onRestartCourse={handleRestartCourse}
+        lang={lang}
+        onToggleLang={() => setLang((l) => (l === 'ko' ? 'en' : 'ko'))}
       />
     </main>
   );
