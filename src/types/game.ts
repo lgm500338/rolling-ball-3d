@@ -28,7 +28,10 @@ export type WorldThemeId = 'skyline' | 'harbor' | 'canyon' | 'overpass' | 'sunse
 export interface WorldThemeSpec {
   id: WorldThemeId;
   name: string;
+  nameKo?: string;
   subtitle: string;
+  hemiIntensity?: number;
+  sunIntensity?: number;
   skyTopColor: string;
   skyBottomColor: string;
   fogColor: string;

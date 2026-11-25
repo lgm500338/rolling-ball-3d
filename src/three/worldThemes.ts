@@ -119,71 +119,86 @@ export const BALL_SKINS: BallSkinSpec[] = [
 export const WORLD_THEMES: Record<WorldThemeId, WorldThemeSpec> = {
   skyline: {
     id: 'skyline',
-    name: 'Skyline Metropolis',
-    subtitle: 'High-altitude timber track suspended above gleaming city skyscrapers',
-    skyTopColor: '#38bdf8',
-    skyBottomColor: '#bae6fd',
-    fogColor: '#bae6fd',
-    fogDensity: 0.0045,
-    sunColor: '#fffbeb',
-    hemiSkyColor: '#7dd3fc',
-    hemiGroundColor: '#64748b',
+    name: 'Night City Lights',
+    nameKo: '도시 야경',
+    subtitle: 'Timber track high above a glittering night skyline',
+    hemiIntensity: 0.8,
+    sunIntensity: 1.05,
+    skyTopColor: '#030712',
+    skyBottomColor: '#1e2a5a',
+    fogColor: '#141c3d',
+    fogDensity: 0.0032,
+    sunColor: '#c7d2fe',
+    hemiSkyColor: '#a5b4fc',
+    hemiGroundColor: '#312e81',
     trackSurface: 'wood',
-    railTrimColor: '#0ea5e9',
+    railTrimColor: '#38bdf8',
   },
   harbor: {
     id: 'harbor',
     name: 'Emerald Harbor Bay',
-    subtitle: 'Floating island bridges & half-pipes high over deep coastal waters',
-    skyTopColor: '#0284c7',
-    skyBottomColor: '#7dd3fc',
-    fogColor: '#7dd3fc',
-    fogDensity: 0.0042,
-    sunColor: '#fef9c3',
-    hemiSkyColor: '#38bdf8',
+    nameKo: '바닷가 항구',
+    subtitle: 'Floating bridges over a sunny bay with sailboats and a lighthouse',
+    hemiIntensity: 0.9,
+    sunIntensity: 1.7,
+    skyTopColor: '#1d6fd1',
+    skyBottomColor: '#cfe9ff',
+    fogColor: '#b9ddf2',
+    fogDensity: 0.0036,
+    sunColor: '#fff7e0',
+    hemiSkyColor: '#93c5fd',
     hemiGroundColor: '#0f766e',
     trackSurface: 'wood',
     railTrimColor: '#22c55e',
   },
   canyon: {
     id: 'canyon',
-    name: 'Twilight Glow Canyon',
-    subtitle: 'Mystical night valley with glowing rivers and candlelit walnut tracks',
-    skyTopColor: '#091526',
-    skyBottomColor: '#164e63',
-    fogColor: '#133b4f',
-    fogDensity: 0.0052,
+    name: 'Moonlit Canyon',
+    nameKo: '달빛 협곡',
+    subtitle: 'Night valley of rock spires, a glowing river and fireflies',
+    hemiIntensity: 1.0,
+    sunIntensity: 1.2,
+    skyTopColor: '#020617',
+    skyBottomColor: '#123a52',
+    fogColor: '#0e2a3b',
+    fogDensity: 0.0042,
     sunColor: '#bae6fd',
-    hemiSkyColor: '#22d3ee',
+    hemiSkyColor: '#67e8f9',
     hemiGroundColor: '#0f172a',
     trackSurface: 'walnut',
     railTrimColor: '#f59e0b',
   },
   overpass: {
     id: 'overpass',
-    name: 'Urban Asphalt Overpass',
-    subtitle: 'Expressway sky-bridge through dense downtown towers',
-    skyTopColor: '#64748b',
-    skyBottomColor: '#cbd5e1',
-    fogColor: '#cbd5e1',
-    fogDensity: 0.0048,
-    sunColor: '#fff7ed',
-    hemiSkyColor: '#94a3b8',
-    hemiGroundColor: '#334155',
+    name: 'Dusk Downtown',
+    nameKo: '해질녘 도심',
+    subtitle: 'Expressway sky-bridge as the city lights switch on at dusk',
+    hemiIntensity: 0.9,
+    sunIntensity: 1.5,
+    skyTopColor: '#2e1065',
+    skyBottomColor: '#f97357',
+    fogColor: '#6b3a5e',
+    fogDensity: 0.0036,
+    sunColor: '#ffc89a',
+    hemiSkyColor: '#f0abfc',
+    hemiGroundColor: '#3b1d4a',
     trackSurface: 'asphalt',
     railTrimColor: '#eab308',
   },
   sunset: {
     id: 'sunset',
-    name: 'Solar Sunset Dunes',
-    subtitle: 'Golden-hour canyon ridges with copper-trimmed speed chutes',
-    skyTopColor: '#7c2d12',
-    skyBottomColor: '#fdba74',
-    fogColor: '#fdba74',
-    fogDensity: 0.0046,
-    sunColor: '#ffedd5',
-    hemiSkyColor: '#fb923c',
-    hemiGroundColor: '#431407',
+    name: 'Sunset Fields',
+    nameKo: '노을 들판',
+    subtitle: 'Golden-hour farmland, rolling hills and a huge setting sun',
+    hemiIntensity: 0.9,
+    sunIntensity: 1.8,
+    skyTopColor: '#3b1a5a',
+    skyBottomColor: '#ff8a3d',
+    fogColor: '#e9a066',
+    fogDensity: 0.0036,
+    sunColor: '#ffd5a0',
+    hemiSkyColor: '#fdba74',
+    hemiGroundColor: '#5b3a1a',
     trackSurface: 'copper',
     railTrimColor: '#f97316',
   },
@@ -197,92 +212,4 @@ export const THEME_ORDER: WorldThemeId[] = [
   'sunset',
 ];
 
-export function buildWorldBackdrop(
-  theme: WorldThemeSpec,
-  courseLength: number,
-): THREE.Group {
-  const group = new THREE.Group();
-  group.name = 'WorldBackdrop';
-
-  // Abyss floor far below (-85m) so looking down gives dramatic height vertigo
-  const abyssGeo = new THREE.PlaneGeometry(900, courseLength + 800);
-  const abyssColor =
-    theme.id === 'harbor'
-      ? '#0d5c75'
-      : theme.id === 'canyon'
-        ? '#082032'
-        : theme.id === 'sunset'
-          ? '#451a03'
-          : '#94a3b8';
-
-  const abyssMat = new THREE.MeshStandardMaterial({
-    color: abyssColor,
-    roughness: theme.id === 'harbor' ? 0.2 : 0.85,
-    metalness: theme.id === 'harbor' ? 0.35 : 0.05,
-  });
-  const abyssPlane = new THREE.Mesh(abyssGeo, abyssMat);
-  abyssPlane.rotation.x = -Math.PI / 2;
-  abyssPlane.position.set(0, -85, -courseLength / 2);
-  group.add(abyssPlane);
-
-  // If Twilight Canyon or Harbor, add a glowing river/shipping lane ribbon below
-  if (theme.id === 'canyon' || theme.id === 'harbor') {
-    const riverGeo = new THREE.PlaneGeometry(36, courseLength + 600);
-    const riverMat = new THREE.MeshBasicMaterial({
-      color: theme.id === 'canyon' ? '#00f5d4' : '#38bdf8',
-      transparent: true,
-      opacity: theme.id === 'canyon' ? 0.45 : 0.3,
-    });
-    const river = new THREE.Mesh(riverGeo, riverMat);
-    river.rotation.x = -Math.PI / 2;
-    river.position.set(15, -84.5, -courseLength / 2);
-    group.add(river);
-  }
-
-  // Instanced distant architectural towers / canyon monoliths flanking the abyss
-  const count = 90;
-  const boxGeo = new THREE.BoxGeometry(1, 1, 1);
-  const towerMat = new THREE.MeshStandardMaterial({
-    color:
-      theme.id === 'skyline'
-        ? '#e2e8f0'
-        : theme.id === 'overpass'
-          ? '#94a3b8'
-          : theme.id === 'canyon'
-            ? '#1e293b'
-            : theme.id === 'sunset'
-              ? '#9a3412'
-              : '#cbd5e1',
-    roughness: 0.65,
-    metalness: 0.2,
-  });
-
-  const towers = new THREE.InstancedMesh(boxGeo, towerMat, count);
-  const dummy = new THREE.Object3D();
-  const tint = new THREE.Color();
-
-  for (let i = 0; i < count; i++) {
-    const side = i % 2 === 0 ? -1 : 1;
-    const xDist = 38 + ((i * 29) % 110);
-    const zPos = 40 - (i / count) * (courseLength + 240);
-    const w = 12 + ((i * 13) % 18);
-    const d = 12 + ((i * 17) % 18);
-    const h = 40 + ((i * 37) % 75);
-
-    dummy.position.set(side * xDist, -85 + h / 2, zPos);
-    dummy.scale.set(w, h, d);
-    dummy.rotation.y = ((i * 7) % 4) * (Math.PI / 2);
-    dummy.updateMatrix();
-    towers.setMatrixAt(i, dummy.matrix);
-
-    const shade = 0.85 + ((i * 19) % 30) / 100;
-    tint.setScalar(shade);
-    towers.setColorAt(i, tint);
-  }
-  towers.instanceMatrix.needsUpdate = true;
-  if (towers.instanceColor) towers.instanceColor.needsUpdate = true;
-  towers.computeBoundingSphere();
-  group.add(towers);
-
-  return group;
-}
+export { buildAtmosphericBackdrop as buildWorldBackdrop } from './backdrops';

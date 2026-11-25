@@ -818,7 +818,7 @@ export const ControlDock: React.FC<ControlDockProps> = ({
                             : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'
                         }`}
                       >
-                        {th.name}
+                        {lang === 'ko' && th.nameKo ? th.nameKo : th.name}
                       </button>
                     ))}
                   </div>

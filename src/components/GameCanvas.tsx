@@ -8,6 +8,7 @@ import {
   WorldThemeId,
 } from '../types/game';
 import { BALL_SKINS, buildWorldBackdrop, WORLD_THEMES } from '../three/worldThemes';
+import { updateWorldBackdrop } from '../three/backdrops';
 import {
   buildCourseMeshes,
   buildPlayerBallGroup,
@@ -935,6 +936,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       lastTime = now;
 
       stepPhysics(dt, now / 1000);
+      updateWorldBackdrop(sceneRefs.current.backdropGroup, dt, camera);
       renderer.render(scene, camera);
 
       if (isSoftwareGl) {
@@ -973,15 +975,17 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const theme = WORLD_THEMES[activeThemeId];
 
     // Update sky background, fog, and lighting colors
-    scene.background = new THREE.Color(theme.skyBottomColor);
+    scene.background = new THREE.Color(theme.fogColor);
     scene.fog = new THREE.FogExp2(theme.fogColor, theme.fogDensity);
 
     if (sRefs.hemiLight) {
       sRefs.hemiLight.color.set(theme.hemiSkyColor);
       sRefs.hemiLight.groundColor.set(theme.hemiGroundColor);
+      sRefs.hemiLight.intensity = theme.hemiIntensity ?? 0.85;
     }
     if (sRefs.keyLight) {
       sRefs.keyLight.color.set(theme.sunColor);
+      sRefs.keyLight.intensity = theme.sunIntensity ?? 1.65;
     }
 
     // Remove previous course & backdrop
