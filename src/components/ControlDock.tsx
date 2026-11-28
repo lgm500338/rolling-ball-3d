@@ -24,7 +24,7 @@ import {
 } from '../types/game';
 import { BALL_SKINS, WORLD_THEMES } from '../three/worldThemes';
 import { TelemetryData } from './GameCanvas';
-import { Lang } from '../utils/i18n';
+import { Lang, LANGS } from '../utils/i18n';
 
 interface ControlDockProps {
   courseNumber: number;
@@ -56,7 +56,7 @@ interface ControlDockProps {
   onJump: () => void;
   onRestartCourse: () => void;
   lang: Lang;
-  onToggleLang: () => void;
+  onChangeLang: (lang: Lang) => void;
 }
 
 const ACCENT_SWATCHES = [
@@ -102,9 +102,9 @@ export const ControlDock: React.FC<ControlDockProps> = ({
   onJump,
   onRestartCourse,
   lang,
-  onToggleLang,
+  onChangeLang,
 }) => {
-  const T = (en: string, ko: string) => (lang === 'ko' ? ko : en);
+  const T = (en: string, ko: string, es: string) => (lang === 'ko' ? ko : lang === 'es' ? es : en);
   // Start collapsed on phones so the drawer doesn't cover the ball
   const [collapsed, setCollapsed] = useState(
     () => typeof window !== 'undefined' && window.innerWidth < 768,
@@ -170,19 +170,19 @@ export const ControlDock: React.FC<ControlDockProps> = ({
             <button
               onClick={() => onSelectCourse(Math.max(1, courseNumber - 1))}
               className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 transition-colors cursor-pointer"
-              title={T('Previous Course', '이전 코스')}
+              title={T('Previous Course', '이전 코스', 'Circuito anterior')}
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-display text-lg font-bold tracking-wider text-amber-400 whitespace-nowrap">
-                  {T('COURSE', '코스')} {courseNumber}
+                  {T('COURSE', '코스', 'CIRCUITO')} {courseNumber}
                 </span>
                 {currentBestStars > 0 && (
                   <span
                     className="flex items-center gap-0.5"
-                    title={T(`Best rating: ${currentBestStars}/3 stars`, `최고 기록: 별 ${currentBestStars}/3`)}
+                    title={T(`Best rating: ${currentBestStars}/3 stars`, `최고 기록: 별 ${currentBestStars}/3`, `Mejor puntuación: ${currentBestStars}/3 estrellas`)}
                   >
                     {[1, 2, 3].map((s) => (
                       <Star
@@ -221,8 +221,8 @@ export const ControlDock: React.FC<ControlDockProps> = ({
               className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-slate-900"
               title={
                 courseNumber >= maxUnlockedCourse
-                  ? T('Clear this course to unlock the next one', '이 코스를 깨야 다음 코스가 열려요')
-                  : T('Next Course', '다음 코스')
+                  ? T('Clear this course to unlock the next one', '이 코스를 깨야 다음 코스가 열려요', 'Supera este circuito para desbloquear el siguiente')
+                  : T('Next Course', '다음 코스', 'Siguiente circuito')
               }
             >
               {courseNumber >= maxUnlockedCourse ? (
@@ -236,11 +236,11 @@ export const ControlDock: React.FC<ControlDockProps> = ({
           {/* Course Progress Bar */}
           <div className="flex-1 max-w-[210px] hidden sm:block">
             <div className="flex justify-between text-[11px] font-mono tabular-nums text-slate-400 mb-1">
-              <span>{T('START', '출발')}</span>
+              <span>{T('START', '출발', 'SALIDA')}</span>
               <span className="text-slate-200 font-semibold">
                 {telemetry.progressPct}%
               </span>
-              <span>{T('FINISH', '도착')}</span>
+              <span>{T('FINISH', '도착', 'META')}</span>
             </div>
             <div className="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
               <div
@@ -255,24 +255,35 @@ export const ControlDock: React.FC<ControlDockProps> = ({
           {/* Coins & Sound Toggle */}
           <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             <div className="text-right">
-              <div className="text-[10px] text-slate-400">{T('COINS', '코인')}</div>
+              <div className="text-[10px] text-slate-400">{T('COINS', '코인', 'MONEDAS')}</div>
               <div className="font-mono tabular-nums text-sm font-bold text-amber-400 flex items-center justify-end gap-1">
                 <Coins className="w-3.5 h-3.5 text-amber-400" />
                 <span>{coins}</span>
               </div>
             </div>
-            <button
-              onClick={onToggleLang}
-              className="px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 text-xs font-bold transition-colors cursor-pointer whitespace-nowrap"
-              aria-label={T('Switch to Korean', 'Switch to English')}
-              title={T('한국어로 보기', 'View in English')}
+            <label
+              className="relative flex items-center gap-0.5 px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 text-xs font-bold transition-colors cursor-pointer whitespace-nowrap"
+              title={T('Language', '언어', 'Idioma')}
             >
-              {lang === 'ko' ? 'EN' : '한국어'}
-            </button>
+              <span>{LANGS.find((l) => l.id === lang)?.label}</span>
+              <ChevronDown className="w-3 h-3 text-slate-400" />
+              <select
+                value={lang}
+                onChange={(e) => onChangeLang(e.target.value as Lang)}
+                aria-label={T('Language', '언어', 'Idioma')}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              >
+                {LANGS.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.title}
+                  </option>
+                ))}
+              </select>
+            </label>
             <button
               onClick={onToggleSound}
               className="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 transition-colors cursor-pointer"
-              aria-label={T('Toggle Sound', '소리 켜기/끄기')}
+              aria-label={T('Toggle Sound', '소리 켜기/끄기', 'Activar/desactivar sonido')}
             >
               {soundEnabled ? (
                 <Volume2 className="w-4 h-4 text-emerald-400" />
@@ -289,12 +300,13 @@ export const ControlDock: React.FC<ControlDockProps> = ({
         <div className="fixed top-24 left-1/2 -translate-x-1/2 z-10 pointer-events-none text-center px-3 w-full max-w-xl">
           <div className="bg-slate-950/90 border border-slate-800 px-5 py-3 rounded-xl shadow-xl inline-block">
             <p className="font-display text-lg sm:text-2xl font-bold tracking-wide text-white">
-              {T('TOUCH & DRAG LEFT / RIGHT TO STEER', '화면을 좌우로 밀어서 조종하세요')}
+              {T('TOUCH & DRAG LEFT / RIGHT TO STEER', '화면을 좌우로 밀어서 조종하세요', 'DESLIZA A IZQUIERDA Y DERECHA PARA GIRAR')}
             </p>
             <p className="text-xs text-slate-300 mt-1">
               {T(
                 'Auto-accelerates forward · Drag down to brake · Tap or press JUMP to leap',
                 '공은 자동으로 앞으로 굴러가요 · 아래로 당기면 감속 · 탭하거나 점프 버튼으로 점프',
+                'La bola avanza sola · Desliza hacia abajo para frenar · Toca o pulsa SALTAR para saltar',
               )}
             </p>
           </div>
@@ -306,19 +318,20 @@ export const ControlDock: React.FC<ControlDockProps> = ({
         <div className="fixed inset-0 z-30 flex items-center justify-center bg-slate-950/75 p-4">
           <div className="bg-slate-950 border border-slate-800 rounded-2xl p-6 max-w-sm w-full text-center shadow-2xl">
             <h2 className="font-display text-3xl font-bold text-rose-500 tracking-wide">
-              {T('FELL OFF TRACK!', '트랙에서 떨어졌어요!')}
+              {T('FELL OFF TRACK!', '트랙에서 떨어졌어요!', '¡TE HAS CAÍDO!')}
             </h2>
             <p className="text-sm text-slate-300 mt-2">
               {T(
                 `You plunged off Course ${courseNumber} at ${telemetry.progressPct}% progress. Every fall restarts from the beginning of the course!`,
                 `코스 ${courseNumber}의 ${telemetry.progressPct}% 지점에서 떨어졌어요. 떨어지면 코스 처음부터 다시 시작해요!`,
+                `Te has caído del circuito ${courseNumber} al ${telemetry.progressPct} % del recorrido. ¡Cada caída te devuelve al principio del circuito!`,
               )}
             </p>
             <button
               onClick={onRestartCourse}
               className="mt-5 w-full py-3 px-6 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-display font-bold text-base tracking-wide transition-colors cursor-pointer"
             >
-              {T(`RETRY COURSE ${courseNumber} (FROM 0%)`, `코스 ${courseNumber} 다시 하기`)}
+              {T(`RETRY COURSE ${courseNumber} (FROM 0%)`, `코스 ${courseNumber} 다시 하기`, `REINTENTAR CIRCUITO ${courseNumber}`)}
             </button>
           </div>
         </div>
@@ -329,10 +342,10 @@ export const ControlDock: React.FC<ControlDockProps> = ({
         <div className="fixed inset-0 z-30 flex items-center justify-center bg-slate-950/80 p-4">
           <div className="bg-slate-950 border border-slate-800 rounded-2xl p-6 max-w-md w-full text-center shadow-2xl">
             <p className="text-xs font-medium text-emerald-400 tracking-wider">
-              {T('FINISH LINE CROSSED', '결승선 통과')}
+              {T('FINISH LINE CROSSED', '결승선 통과', '¡LÍNEA DE META!')}
             </p>
             <h2 className="font-display text-3xl font-bold text-white tracking-wide mt-1">
-              {T(`COURSE ${courseNumber} COMPLETE!`, `코스 ${courseNumber} 완료!`)}
+              {T(`COURSE ${courseNumber} COMPLETE!`, `코스 ${courseNumber} 완료!`, `¡CIRCUITO ${courseNumber} SUPERADO!`)}
             </h2>
             <p className="text-xs text-slate-400 mt-1">{courseTitle}</p>
 
@@ -363,14 +376,14 @@ export const ControlDock: React.FC<ControlDockProps> = ({
             {clearResult && (
               <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 text-left space-y-2 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-300">{T('Course Cleared', '코스 완주')}</span>
+                  <span className="text-slate-300">{T('Course Cleared', '코스 완주', 'Circuito superado')}</span>
                   <span className="font-mono tabular-nums text-emerald-400 font-semibold">
-                    {T('+1 Star', '별 +1')}
+                    {T('+1 Star', '별 +1', '+1 estrella')}
                   </span>
                 </div>
                 <div className="flex items-center justify-between border-t border-slate-800/80 pt-2">
                   <span className="text-slate-300">
-                    {T(`Clear Time (Par ${clearResult.parTimeSec}s)`, `완주 시간 (목표 ${clearResult.parTimeSec}초)`)}
+                    {T(`Clear Time (Par ${clearResult.parTimeSec}s)`, `완주 시간 (목표 ${clearResult.parTimeSec}초)`, `Tiempo (objetivo ${clearResult.parTimeSec} s)`)}
                   </span>
                   <span
                     className={`font-mono tabular-nums font-semibold ${
@@ -380,12 +393,12 @@ export const ControlDock: React.FC<ControlDockProps> = ({
                     }`}
                   >
                     {clearResult.elapsedSec.toFixed(1)}s{' '}
-                    {clearResult.beatParTime ? T('· +1 Star', '· 별 +1') : T('· Missed', '· 실패')}
+                    {clearResult.beatParTime ? T('· +1 Star', '· 별 +1', '· +1 estrella') : T('· Missed', '· 실패', '· Fallado')}
                   </span>
                 </div>
                 <div className="flex items-center justify-between border-t border-slate-800/80 pt-2">
                   <span className="text-slate-300">
-                    {T(`Coins Collected (Goal ${clearResult.coinTarget})`, `모은 코인 (목표 ${clearResult.coinTarget}개)`)}
+                    {T(`Coins Collected (Goal ${clearResult.coinTarget})`, `모은 코인 (목표 ${clearResult.coinTarget}개)`, `Monedas recogidas (objetivo ${clearResult.coinTarget})`)}
                   </span>
                   <span
                     className={`font-mono tabular-nums font-semibold ${
@@ -395,15 +408,15 @@ export const ControlDock: React.FC<ControlDockProps> = ({
                     }`}
                   >
                     {clearResult.coinsCollected} / {totalCourseCoins}{' '}
-                    {clearResult.hitCoinTarget ? T('· +1 Star', '· 별 +1') : T('· Missed', '· 실패')}
+                    {clearResult.hitCoinTarget ? T('· +1 Star', '· 별 +1', '· +1 estrella') : T('· Missed', '· 실패', '· Fallado')}
                   </span>
                 </div>
                 <div className="flex items-center justify-between border-t border-slate-800 pt-2">
                   <span className="text-amber-300 font-medium">
-                    {T('Course Reward Bonus', '코스 보상 보너스')}
+                    {T('Course Reward Bonus', '코스 보상 보너스', 'Bonificación del circuito')}
                   </span>
                   <span className="font-mono tabular-nums text-amber-400 font-bold">
-                    +{clearResult.bonusCoins} {T('Coins', '코인')}
+                    +{clearResult.bonusCoins} {T('Coins', '코인', 'monedas')}
                   </span>
                 </div>
               </div>
@@ -414,13 +427,13 @@ export const ControlDock: React.FC<ControlDockProps> = ({
                 onClick={onRestartCourse}
                 className="flex-1 py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 font-medium text-sm transition-colors cursor-pointer whitespace-nowrap"
               >
-                {T('Replay', '다시 하기')}
+                {T('Replay', '다시 하기', 'Repetir')}
               </button>
               <button
                 onClick={() => onSelectCourse(courseNumber + 1)}
                 className="flex-[1.6] py-3 px-5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-display font-bold text-base tracking-wide transition-colors cursor-pointer whitespace-nowrap"
               >
-                {T(`NEXT COURSE (${courseNumber + 1})`, `다음 코스 (${courseNumber + 1})`)}
+                {T(`NEXT COURSE (${courseNumber + 1})`, `다음 코스 (${courseNumber + 1})`, `SIGUIENTE CIRCUITO (${courseNumber + 1})`)}
               </button>
             </div>
           </div>
@@ -446,12 +459,12 @@ export const ControlDock: React.FC<ControlDockProps> = ({
             {collapsed ? (
               <>
                 <ChevronUp className="w-3.5 h-3.5 text-amber-400" />
-                <span>{T('Show Controls (H)', '메뉴 열기')}</span>
+                <span>{T('Show Controls (H)', '메뉴 열기', 'Abrir menú')}</span>
               </>
             ) : (
               <>
                 <ChevronDown className="w-3.5 h-3.5 text-amber-400" />
-                <span>{T('Hide Controls (H)', '메뉴 닫기')}</span>
+                <span>{T('Hide Controls (H)', '메뉴 닫기', 'Cerrar menú')}</span>
               </>
             )}
           </button>
@@ -461,10 +474,10 @@ export const ControlDock: React.FC<ControlDockProps> = ({
             <button
               onClick={onRestartCourse}
               className="px-3.5 py-2.5 rounded-xl bg-slate-950/90 hover:bg-slate-900 text-slate-200 border border-slate-800 text-xs font-medium shadow-md flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
-              title={T('Restart Course from Beginning', '코스 처음부터 다시')}
+              title={T('Restart Course from Beginning', '코스 처음부터 다시', 'Reiniciar el circuito desde el principio')}
             >
               <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
-              <span>{T('Restart', '재시작')}</span>
+              <span>{T('Restart', '재시작', 'Reiniciar')}</span>
             </button>
             <button
               onPointerDown={(e) => {
@@ -473,7 +486,7 @@ export const ControlDock: React.FC<ControlDockProps> = ({
               }}
               className="px-6 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 font-display font-bold text-sm tracking-wider shadow-lg transition-transform cursor-pointer whitespace-nowrap"
             >
-              {T('JUMP (SPACE)', '점프')}
+              {T('JUMP (SPACE)', '점프', 'SALTAR')}
             </button>
           </div>
         </div>
@@ -493,7 +506,7 @@ export const ControlDock: React.FC<ControlDockProps> = ({
                   }`}
                 >
                   <Compass className="w-3.5 h-3.5 text-amber-400" />
-                  <span>{T('Track & Camera', '트랙 & 카메라')}</span>
+                  <span>{T('Track & Camera', '트랙 & 카메라', 'Pista y cámara')}</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('balls')}
@@ -505,7 +518,7 @@ export const ControlDock: React.FC<ControlDockProps> = ({
                 >
                   <ShoppingBag className="w-3.5 h-3.5 text-emerald-400" />
                   <span>
-                    {T('Ball Shop', '공 상점')} ({unlockedSkins.length}/{BALL_SKINS.length})
+                    {T('Ball Shop', '공 상점', 'Tienda de bolas')} ({unlockedSkins.length}/{BALL_SKINS.length})
                   </span>
                 </button>
                 <button
@@ -517,16 +530,16 @@ export const ControlDock: React.FC<ControlDockProps> = ({
                   }`}
                 >
                   <Palette className="w-3.5 h-3.5 text-sky-400" />
-                  <span>{T('Courses & Worlds', '코스 & 월드')}</span>
+                  <span>{T('Courses & Worlds', '코스 & 월드', 'Circuitos y mundos')}</span>
                 </button>
               </div>
 
               <div className="hidden md:flex items-center gap-2 text-xs text-slate-400 whitespace-nowrap">
-                <span>{T('Auto-Roll Active', '자동 굴러가기')}</span>
+                <span>{T('Auto-Roll Active', '자동 굴러가기', 'Rodado automático')}</span>
                 <span aria-hidden="true">·</span>
-                <span>{T('Drag Left/Right: Steer', '좌우로 밀어서 조종')}</span>
+                <span>{T('Drag Left/Right: Steer', '좌우로 밀어서 조종', 'Desliza a izquierda/derecha para girar')}</span>
                 <span aria-hidden="true">·</span>
-                <span>{T(`Best Cleared: Course ${highestClearedCourse}`, `최고 기록: 코스 ${highestClearedCourse}`)}</span>
+                <span>{T(`Best Cleared: Course ${highestClearedCourse}`, `최고 기록: 코스 ${highestClearedCourse}`, `Récord: circuito ${highestClearedCourse}`)}</span>
               </div>
             </div>
 
@@ -536,14 +549,14 @@ export const ControlDock: React.FC<ControlDockProps> = ({
                 {/* Camera View Preset */}
                 <div>
                   <div className="text-[11px] text-slate-400 mb-1.5">
-                    {T('3D Camera Perspective', '카메라 시점')}
+                    {T('3D Camera Perspective', '카메라 시점', 'Vista de cámara')}
                   </div>
                   <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl">
                     {(
                       [
-                        { id: 'chase', label: T('3D Chase Cam', '추적 카메라') },
-                        { id: 'low', label: T('Low Action Cam', '낮은 시점') },
-                        { id: 'far', label: T('Wide Overview', '넓은 시점') },
+                        { id: 'chase', label: T('3D Chase Cam', '추적 카메라', 'Cámara de persecución') },
+                        { id: 'low', label: T('Low Action Cam', '낮은 시점', 'Cámara baja') },
+                        { id: 'far', label: T('Wide Overview', '넓은 시점', 'Vista amplia') },
                       ]
                     ).map((cam) => (
                       <button
@@ -564,14 +577,14 @@ export const ControlDock: React.FC<ControlDockProps> = ({
                 {/* Track Surface Finish */}
                 <div>
                   <div className="text-[11px] text-slate-400 mb-1.5">
-                    {T('Track Surface', '트랙 바닥')}
+                    {T('Track Surface', '트랙 바닥', 'Superficie de la pista')}
                   </div>
                   <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl">
                     {(
                       [
-                        { id: 'lacquer', label: T('Glossy Lane', '광택 볼링장') },
-                        { id: 'piano', label: T('Black Gloss', '블랙 유광') },
-                        { id: 'wood', label: T('Natural Wood', '원목') },
+                        { id: 'lacquer', label: T('Glossy Lane', '광택 볼링장', 'Pista de bolera') },
+                        { id: 'piano', label: T('Black Gloss', '블랙 유광', 'Negro brillante') },
+                        { id: 'wood', label: T('Natural Wood', '원목', 'Madera natural') },
                       ] as { id: TrackFinish; label: string }[]
                     ).map((f) => (
                       <button
@@ -592,7 +605,7 @@ export const ControlDock: React.FC<ControlDockProps> = ({
                 {/* Quick Unlocked Ball Switcher */}
                 <div>
                   <div className="text-[11px] text-slate-400 mb-1.5">
-                    {T('Equipped Ball · Open Ball Shop to Unlock More', '장착한 공 · 공 상점에서 더 열 수 있어요')}
+                    {T('Equipped Ball · Open Ball Shop to Unlock More', '장착한 공 · 공 상점에서 더 열 수 있어요', 'Bola equipada · Desbloquea más en la tienda')}
                   </div>
                   <div className="flex items-center gap-1.5 overflow-x-auto">
                     {BALL_SKINS.slice(0, 4).map((b) => {
@@ -620,27 +633,27 @@ export const ControlDock: React.FC<ControlDockProps> = ({
                 {/* Quick Course Stepper */}
                 <div>
                   <div className="text-[11px] text-slate-400 mb-1.5">
-                    {T('Jump Across Courses', '코스 이동')}
+                    {T('Jump Across Courses', '코스 이동', 'Cambiar de circuito')}
                   </div>
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => onSelectCourse(1)}
                       className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs text-slate-300 cursor-pointer whitespace-nowrap"
                     >
-                      {T('Course 1', '코스 1')}
+                      {T('Course 1', '코스 1', 'Circuito 1')}
                     </button>
                     <button
                       onClick={() => onSelectCourse(courseNumber - 1)}
                       disabled={courseNumber <= 1}
                       className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs text-slate-300 cursor-pointer whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                      {T('Previous', '이전 코스')}
+                      {T('Previous', '이전 코스', 'Anterior')}
                     </button>
                     <button
                       onClick={() => onSelectCourse(maxUnlockedCourse)}
                       className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs text-amber-400 cursor-pointer whitespace-nowrap"
                     >
-                      {T(`Newest: Course ${maxUnlockedCourse}`, `도전 중: 코스 ${maxUnlockedCourse}`)}
+                      {T(`Newest: Course ${maxUnlockedCourse}`, `도전 중: 코스 ${maxUnlockedCourse}`, `Actual: circuito ${maxUnlockedCourse}`)}
                     </button>
                   </div>
                 </div>
@@ -690,7 +703,7 @@ export const ControlDock: React.FC<ControlDockProps> = ({
                               <Check className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                             ) : (
                               <span className="text-[10px] text-emerald-400 font-medium">
-                                {T('Owned', '보유')}
+                                {T('Owned', '보유', 'Tuya')}
                               </span>
                             )
                           ) : (
@@ -710,11 +723,11 @@ export const ControlDock: React.FC<ControlDockProps> = ({
                         <div className="text-[10px] text-slate-400 truncate mt-0.5">
                           {unlocked
                             ? active
-                              ? T('Equipped', '장착 중')
+                              ? T('Equipped', '장착 중', 'Equipada')
                               : skin.category
                             : canAfford
-                              ? T('Click to Buy', '눌러서 구매')
-                              : T(`${skin.price} Coins`, `${skin.price} 코인`)}
+                              ? T('Click to Buy', '눌러서 구매', 'Toca para comprar')
+                              : T(`${skin.price} Coins`, `${skin.price} 코인`, `${skin.price} monedas`)}
                         </div>
                       </button>
                     );
@@ -725,7 +738,7 @@ export const ControlDock: React.FC<ControlDockProps> = ({
                 <div className="flex flex-wrap items-center justify-between gap-4 pt-2 border-t border-slate-800/80">
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-slate-400 whitespace-nowrap">
-                      {T('Custom Trim / Glow Color:', '빛 색상:')}
+                      {T('Custom Trim / Glow Color:', '빛 색상:', 'Color de la luz:')}
                     </span>
                     <div className="flex items-center gap-1.5">
                       {ACCENT_SWATCHES.map((sw) => (
@@ -750,7 +763,7 @@ export const ControlDock: React.FC<ControlDockProps> = ({
 
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-slate-400 whitespace-nowrap">
-                      {T('Luminous Glow Power:', '빛 세기:')}
+                      {T('Luminous Glow Power:', '빛 세기:', 'Intensidad de la luz:')}
                     </span>
                     <input
                       type="range"
@@ -780,6 +793,7 @@ export const ControlDock: React.FC<ControlDockProps> = ({
                     {T(
                       `Open courses: 1 to ${maxUnlockedCourse} · Clear a course to unlock the next`,
                       `열린 코스: 1~${maxUnlockedCourse} · 코스를 깨면 다음 코스가 열려요`,
+                      `Circuitos abiertos: 1 a ${maxUnlockedCourse} · Supera uno para desbloquear el siguiente`,
                     )}
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5">
@@ -798,7 +812,7 @@ export const ControlDock: React.FC<ControlDockProps> = ({
                           }`}
                         >
                           {locked && <Lock className="w-3 h-3" />}
-                          <span>{T('Course', '코스')} {cNum}</span>
+                          <span>{T('Course', '코스', 'Circuito')} {cNum}</span>
                           {bestStars > 0 && (
                             <span
                               className={
@@ -824,13 +838,13 @@ export const ControlDock: React.FC<ControlDockProps> = ({
                         value={customCourseInput}
                         onChange={(e) => setCustomCourseInput(e.target.value)}
                         className="w-20 px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 text-xs font-mono tabular-nums text-white"
-                        placeholder={T('Course #', '코스 번호')}
+                        placeholder={T('Course #', '코스 번호', 'Nº de circuito')}
                       />
                       <button
                         type="submit"
                         className="px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-semibold cursor-pointer whitespace-nowrap"
                       >
-                        {T('Go', '이동')}
+                        {T('Go', '이동', 'Ir')}
                       </button>
                     </form>
                   </div>
@@ -839,7 +853,7 @@ export const ControlDock: React.FC<ControlDockProps> = ({
                 {/* World Backdrop Theme Selector */}
                 <div>
                   <div className="text-[11px] text-slate-400 mb-1.5">
-                    {T('World Backdrop & Track Surface', '배경 월드 & 트랙')}
+                    {T('World Backdrop & Track Surface', '배경 월드 & 트랙', 'Mundo de fondo y pista')}
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5">
                     <button
@@ -850,7 +864,7 @@ export const ControlDock: React.FC<ControlDockProps> = ({
                           : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'
                       }`}
                     >
-                      {T('Auto per Course', '코스마다 자동')}
+                      {T('Auto per Course', '코스마다 자동', 'Automático por circuito')}
                     </button>
                     {Object.values(WORLD_THEMES).map((th) => (
                       <button
@@ -862,7 +876,7 @@ export const ControlDock: React.FC<ControlDockProps> = ({
                             : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'
                         }`}
                       >
-                        {lang === 'ko' && th.nameKo ? th.nameKo : th.name}
+                        {lang === 'ko' && th.nameKo ? th.nameKo : lang === 'es' && th.nameEs ? th.nameEs : th.name}
                       </button>
                     ))}
                   </div>

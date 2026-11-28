@@ -192,7 +192,9 @@ export default function App() {
           message:
             lang === 'ko'
               ? `${skin.name}을(를) 열려면 코인이 ${shortfall}개 더 필요해요 (가격 ${skin.price}).`
-              : `Need ${shortfall} more coins to unlock ${skin.name} (${skin.price} coins).`,
+              : lang === 'es'
+                ? `Te faltan ${shortfall} monedas para desbloquear ${skin.name} (${skin.price} monedas).`
+                : `Need ${shortfall} more coins to unlock ${skin.name} (${skin.price} coins).`,
         };
       }
 
@@ -207,7 +209,9 @@ export default function App() {
         message:
           lang === 'ko'
             ? `${skin.name}을(를) 열고 장착했어요!`
-            : `Unlocked and equipped ${skin.name}!`,
+            : lang === 'es'
+              ? `¡${skin.name} desbloqueada y equipada!`
+              : `Unlocked and equipped ${skin.name}!`,
       };
     },
     [unlockedSkins, coins, lang],
@@ -276,7 +280,7 @@ export default function App() {
         onJump={handleJump}
         onRestartCourse={handleRestartCourse}
         lang={lang}
-        onToggleLang={() => setLang((l) => (l === 'ko' ? 'en' : 'ko'))}
+        onChangeLang={setLang}
       />
     </main>
   );
