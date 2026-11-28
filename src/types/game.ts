@@ -31,6 +31,7 @@ export interface WorldThemeSpec {
   id: WorldThemeId;
   name: string;
   nameKo?: string;
+  nameEs?: string;
   subtitle: string;
   hemiIntensity?: number;
   sunIntensity?: number;
